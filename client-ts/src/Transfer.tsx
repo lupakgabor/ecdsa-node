@@ -1,34 +1,47 @@
 import {ChangeEvent, FormEvent, useState} from "react";
 import server from "./server";
 import axios from 'axios';
+import {utf8ToBytes} from "ethereum-cryptography/utils";
+import {keccak256} from "ethereum-cryptography/keccak";
+import {secp256k1 } from "ethereum-cryptography/secp256k1";
+
 
 type TransferProps = {
-  address: string;
+  privateKey: string;
   setBalance: (balance: number) => void;
 }
 
-function Transfer({ address, setBalance }: TransferProps) {
+function Transfer({ privateKey, setBalance }: TransferProps) {
   const [sendAmount, setSendAmount] = useState("");
   const [recipient, setRecipient] = useState("");
 
   const setValue = (setter: (value: string) => void) => (evt: ChangeEvent<HTMLInputElement>) => setter(evt.target.value);
+  const hashMessage = (message: string) => keccak256(utf8ToBytes(message));
 
   async function transfer(evt: FormEvent) {
     evt.preventDefault();
+
+    const message = JSON.stringify({
+      recipient,
+      amount: parseInt(sendAmount),
+    })
+
+    const signedMessage = secp256k1.sign(hashMessage(message), privateKey);
 
     try {
       const {
         data: { balance },
       } = await server.post(`send`, {
-        sender: address,
-        amount: parseInt(sendAmount),
-        recipient,
+        signature: signedMessage.toCompactHex(),
+        recovery: signedMessage.recovery,
+        message,
       });
       setBalance(balance);
     } catch (error) {
       if (axios.isAxiosError(error)) {
         alert(error.response?.data.message);
       } else {
+        console.log('Error', error);
         alert('Something went wrong!')
       }
     }
@@ -56,7 +69,7 @@ function Transfer({ address, setBalance }: TransferProps) {
         ></input>
       </label>
 
-      <input type="submit" className="button" value="Transfer" />
+      <input type="submit" className="button" value="Transfer" disabled={!privateKey || !sendAmount || !recipient} />
     </form>
   );
 }

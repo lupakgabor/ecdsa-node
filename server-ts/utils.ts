@@ -6,17 +6,14 @@ import {secp256k1 } from "ethereum-cryptography/secp256k1";
 
 const PRIVATE_KEY = "6b911fd37cdf5c81d4c0adb1ab7fa822ed253ab0ad9aa18d77257c88b29b718e";
 
-function hashMessage(message: string) {
+export function hashMessage(message: string) {
     const bytes = utf8ToBytes(message);
-    console.log('Message in bytes', bytes);
-    const hash = keccak256(bytes);
-    console.log('Hash message', hash);
-    return hash;
+    return keccak256(bytes);
 }
 
 console.log('Hex message', toHex(hashMessage('Hello Alchemy!')));
 
-function signMessage(messageHash: Uint8Array): [string, number] {
+export function signMessage(messageHash: Uint8Array): [string, number] {
     const sign = secp256k1.sign(messageHash, PRIVATE_KEY);
 
     sign.recoverPublicKey(messageHash);
@@ -26,11 +23,11 @@ function signMessage(messageHash: Uint8Array): [string, number] {
     return [sign.toCompactHex(), sign.recovery];
 }
 
-function getPublicKey () {
+export function getPublicKey () {
     return secp256k1.getPublicKey(PRIVATE_KEY);
 }
 
-function getPublicKeyFromMessage(signature: string , messageHash: Uint8Array, recoveryBit: number) {
+export function getPublicKeyFromMessage(signature: string , messageHash: Uint8Array, recoveryBit: number) {
     let sign = secp256k1.Signature.fromCompact(signature);
 
     sign = sign.addRecoveryBit(recoveryBit);
@@ -38,7 +35,7 @@ function getPublicKeyFromMessage(signature: string , messageHash: Uint8Array, re
     return sign.recoverPublicKey(messageHash).toHex(true);
 }
 
-function getAddress(publicKey: Uint8Array) {
+export function getAddress(publicKey: Uint8Array) {
     const isCompressed = publicKey.slice(0, 1);
 
     const kek = keccak256(publicKey.slice(1));
